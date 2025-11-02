@@ -1,10 +1,10 @@
 # Cloud Notes
 
-A full-stack note-taking application with authentication using React, Express, and Firebase.
+A full-stack note-taking application with authentication using React and Express.
 
 ## Project Structure
 
-\`\`\`
+```
 cloud-notes/
 ├── client/                 # Frontend React application
 │   ├── src/
@@ -23,7 +23,7 @@ cloud-notes/
     │   ├── middleware/    # Custom middleware
     │   └── config/        # Configuration files
     └── package.json
-\`\`\`
+```
 
 ## Setup Instructions
 
