@@ -1,0 +1,71 @@
+steps:
+  # 1. Construir la imagen del Frontend (Client)
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'client'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'VITE_API_KEY=$$VITE_API_KEY_SECRET'
+      - '--build-arg'
+      - 'VITE_AUTH_DOMAIN=$$VITE_AUTH_DOMAIN_SECRET'
+      - '--build-arg'
+      - 'VITE_PROJECT_ID=$$VITE_PROJECT_ID_SECRET'
+      - '-t'
+      - 'us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/frontend:$COMMIT_SHA'
+      - '.'
+    secretEnv: ['VITE_API_KEY_SECRET', 'VITE_AUTH_DOMAIN_SECRET', 'VITE_PROJECT_ID_SECRET']
+
+  # 2. Construir la imagen del Backend (Server)
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'server'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/backend:$COMMIT_SHA'
+      - '.'
+
+  # 3. Publicar ambas imágenes en Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/frontend:$COMMIT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/backend:$COMMIT_SHA']
+
+  # 4. Desplegar el Backend en Cloud Run
+  - name: 'gcr.io/google-cloud-sdk/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'my-backend-service' # Elige un nombre
+      - '--image=us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/backend:$COMMIT_SHA'
+      - '--region=us-south1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--set-secrets=PROJECT_ID=PROJECT_ID:latest,PRIVATE_KEY_ID=PRIVATE_KEY_ID:latest,PRIVATE_KEY=PRIVATE_KEY:latest,CLIENT_EMAIL=CLIENT_EMAIL:latest,CLIENT_ID=CLIENT_ID:latest,AUTH_URI=AUTH_URI:latest,TOKEN_URI=TOKEN_URI:latest,AUTH_PROVIDER_X509_CERT_URL=AUTH_PROVIDER_X509_CERT_URL:latest,CLIENT_X509_CERT_URL=CLIENT_X509_CERT_URL:latest'
+
+  # 5. Desplegar el Frontend en Cloud Run
+  - name: 'gcr.io/google-cloud-sdk/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'my-frontend-service' # Elige un nombre
+      - '--image=us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/frontend:$COMMIT_SHA'
+      - '--region=us-south1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+
+# Habilita la sintaxis '$$' para acceder a los secretos en 'build-arg'
+availableSecrets:
+  secretManager:
+    - versionName: projects/cloudnotes-476700/secrets/VITE_API_KEY/versions/latest
+      env: 'VITE_API_KEY_SECRET'
+    - versionName: projects/cloudnotes-476700/secrets/VITE_AUTH_DOMAIN/versions/latest
+      env: 'VITE_AUTH_DOMAIN_SECRET'
+    - versionName: projects/cloudnotes-476700/secrets/VITE_PROJECT_ID/versions/latest
+      env: 'VITE_PROJECT_ID_SECRET'
+
+# Guarda las imágenes en Artifact Registry
+images:
+  - 'us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/frontend:$COMMIT_SHA'
+  - 'us-south1-docker.pkg.dev/cloudnotes-476700/cloud-run-source-deploy/backend:$COMMIT_SHA'
