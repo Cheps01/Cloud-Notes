@@ -1,20 +1,7 @@
-# Usa una imagen base oficial de Node.js
-FROM node:18-slim
-
-# Establece el directorio de trabajo
-WORKDIR /usr/src
-
-# Copia los archivos de definición de dependencias
+FROM node:18-alpine
+WORKDIR /app
 COPY package*.json ./
-
-# Instala las dependencias
-RUN npm install
-
-# Copia el resto del código fuente de la aplicación
+RUN npm install --production
 COPY . .
-
-# Expone el puerto en el que corre tu app (ajústalo si es necesario)
 EXPOSE 8080
-
-# Comando para iniciar el servidor
-CMD [ "npm", "start" ]
+CMD ["node", "server.js"]
